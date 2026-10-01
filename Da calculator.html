@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TS RPS-2020 DA & Arrears Calculator (Jan 2024 – Dec 2030)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Primary SheetJS CDN for true .xlsx generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+    /* Foolscap (FS / Folio) Landscape Print Rules */
+    @page {
+      size: 330mm 215mm; /* Official Indian Foolscap / Folio 8.5" x 13" Landscape */
+      margin: 8mm 8mm;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      
+      html, body {
+        background-color: #fff !important;
+        font-size: 8.5pt !important;
+        line-height: 1.25 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #0f172a !important;
+        width: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      header { display: none !important; }
+
+      .summary-cards-print {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 6px !important;
+        page-break-inside: avoid !important;
+      }
+      .summary-card-box {
+        border: 1px solid #475569 !important;
+        padding: 5px 8px !important;
+        border-radius: 4px !important;
+        background: #f8fafc !important;
+      }
+
+      .overflow-x-auto {
+        overflow: visible !important;
+        display: block !important;
+        width: 100% !important;
+      }
+
+      /* Locked strictly between left & right margins */
+      table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+        font-size: 8pt !important;
+      }
+
+      thead {
+        display: table-header-group !important;
+      }
+      tfoot {
+        display: table-footer-group !important;
+      }
+
+      th {
+        padding: 4px 3px !important;
+        background-color: #f1f5f9 !important;
+        border: 1px solid #475569 !important;
+        font-size: 7.8pt !important;
+        font-weight: 700 !important;
+        line-height: 1.15 !important;
+        text-align: center !important;
+        color: #0f172a !important;
+      }
+
+      td {
+        padding: 3px 4px !important;
+        border: 1px solid #94a3b8 !important;
+        line-height: 1.2 !important;
+        vertical-align: middle !important;
+        color: #0f172a !important;
+      }
+
+      .col-month { width: 11% !important; }
+      .col-basic { width: 15% !important; }
+      .col-status { width: 22% !important; }
+      .col-drawn { width: 10.5% !important; }
+      .col-due { width: 10.5% !important; }
+      .col-arrear { width: 11% !important; }
+      .col-scheme { width: 10% !important; }
+      .col-cash { width: 10% !important; }
+
+      .wrap-text {
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      .num-cell {
+        white-space: nowrap !important;
+        font-variant-numeric: tabular-nums !important;
+      }
+
+      tr {
+        page-break-inside: avoid !important;
+      }
+
+      .badge-print {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        font-size: 7.5pt !important;
+        font-weight: 600 !important;
+        color: #1e293b !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-emerald-800 text-white shadow-md border-b-4 border-emerald-600 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 flex justify-between items-center gap-3">
+      <div>
+        <span class="inline-block bg-emerald-950 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">
+          Govt of Telangana • RPS 2020 Treasury Standard
+        </span>
+        <h1 class="text-base sm:text-xl font-bold tracking-tight mt-0.5">DA & Arrears Statement Calculator</h1>
+        <p class="text-emerald-100 text-xs hidden sm:block">Jan 2024 to Dec 2030 • DA: 37.31% & 40.05% • AAS & Promotion Scheme</p>
+      </div>
+      <div class="flex items-center gap-2 no-print flex-wrap">
+        <button onclick="exportToExcel('xlsx')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm transition border border-emerald-400 cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Download Excel (.xlsx)
+        </button>
+        <button onclick="exportToExcel('csv')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 shadow-sm transition border border-emerald-500 cursor-pointer">
+          CSV
+        </button>
+        <button onclick="window.print()" class="bg-white text-emerald-800 hover:bg-emerald-50 px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Print / PDF (FS Landscape)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 space-y-4">
+
+    <!-- HIGH-VISIBILITY PREPARED BY BANNER (Visible on screen only; hidden on Print/PDF & Excel) -->
+    <section class="no-print bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white rounded-xl p-4 sm:p-5 shadow-md border-2 border-emerald-500/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-emerald-300 shadow-inner">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wider shadow-sm">
+              Prepared by
+            </span>
+            <span class="text-xs text-emerald-200 font-medium">Government of Telangana</span>
+          </div>
+          <h2 class="text-base sm:text-lg font-black tracking-wide text-white mt-0.5">
+            MADHIRAJU SAIKUMAR
+          </h2>
+          <p class="text-xs text-emerald-100 font-semibold">Senior Assistant</p>
+        </div>
+      </div>
+      <div class="bg-white/10 backdrop-blur-sm border border-white/15 px-3.5 py-2 rounded-lg text-xs md:text-right text-emerald-50">
+        <span class="text-emerald-200 block text-[10px] uppercase font-bold tracking-wider">Office Details</span>
+        <span class="font-medium">O/o. The District Intermediate Education Officer, Khammam.</span>
+      </div>
+    </section>
+
+    <!-- Configuration Card -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 no-print space-y-4">
+      <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+        Employee, Service & Fixation Settings
+      </h2>
+
+      <!-- Row 1: Employee Details, Scheme & Appointment Selection -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div>
+          <label for="empName" class="block text-xs font-semibold text-slate-600 mb-1">EMPLOYEE NAME</label>
+          <input type="text" id="empName" oninput="updateEmpDetails()" placeholder="Enter Employee Name" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label for="empDesig" class="block text-xs font-semibold text-slate-600 mb-1">PRESENT DESIGNATION</label>
+          <input type="text" id="empDesig" oninput="updateEmpDetails()" placeholder="Enter Designation" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">PENSION SCHEME</label>
+          <div class="grid grid-cols-2 gap-1.5">
+            <label class="flex items-center justify-center gap-1 cursor-pointer bg-slate-50 border border-slate-300 py-1.5 px-2 rounded-lg text-xs font-semibold hover:bg-slate-100">
+              <input type="radio" name="pensionScheme" value="GPF" checked onchange="recalculateTotals(); updateEmpDetails();" class="text-emerald-600">
+              <span>GPF (100%)</span>
+            </label>
+            <label class="flex items-center justify-center gap-1 cursor-pointer bg-slate-50 border border-slate-300 py-1.5 px-2 rounded-lg text-xs font-semibold hover:bg-slate-100">
+              <input type="radio" name="pensionScheme" value="CPS" onchange="recalculateTotals(); updateEmpDetails();" class="text-emerald-600">
+              <span>CPS (10/90)</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label for="apptTimeline" class="block text-xs font-semibold text-slate-600 mb-1">APPOINTMENT TIMELINE</label>
+          <select id="apptTimeline" onchange="handleApptTimelineChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+            <option value="before" selected>On or Before 01-01-2024</option>
+            <option value="after">Appointed After 01-01-2024</option>
+          </select>
+        </div>
+
+        <div id="dojContainer" class="hidden">
+          <label for="doj" class="block text-xs font-semibold text-emerald-800 mb-1">DATE OF APPOINTMENT</label>
+          <input type="date" id="doj" value="2024-02-01" min="2024-01-02" max="2030-12-31" onchange="buildSchedule()" class="w-full bg-white border border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+        </div>
+      </div>
+
+      <!-- Row 2: Pay, Increment & Manual Calculation End Date -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2 border-t border-slate-100">
+        <div>
+          <label for="initialBasic" class="block text-xs font-semibold text-slate-600 mb-1">SCALE BASIC (AT APPT / JAN 24)</label>
+          <select id="initialBasic" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+            <!-- Dynamically populated from RPS 2020 -->
+          </select>
+          <p class="text-[11px] text-slate-500 mt-1">RPS-2020 Master Scale</p>
+        </div>
+
+        <div>
+          <label for="incrementMonth" class="block text-xs font-semibold text-slate-600 mb-1">ANNUAL INCREMENT MONTH</label>
+          <select id="incrementMonth" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+            <option value="none">No Increment</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <p class="text-[11px] text-slate-500 mt-1" id="incMonthNote">Advances +1 stage each year</p>
+        </div>
+
+        <div>
+          <label for="endPeriod" class="block text-xs font-semibold text-slate-600 mb-1">CALCULATE UP TO DATE</label>
+          <input type="date" id="endPeriod" value="2026-09-30" min="2024-01-01" max="2030-12-31" onchange="buildSchedule()" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+          <p class="text-[11px] text-slate-500 mt-1">Select date between 01-01-2024 & 31-12-2030</p>
+        </div>
+      </div>
+
+      <!-- Row 3: TWO SEPARATE FIXATION SCHEMES (AAS & PROMOTION) -->
+      <div class="pt-3 border-t border-slate-200 space-y-3">
+        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+          Service Progression: AAS & Promotion Fixation Settings
+        </h3>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          
+          <!-- ENTRY 1: Automatic Advancement Scheme (AAS) -->
+          <div class="bg-amber-50/40 p-3 rounded-lg border border-amber-200/80 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase">
+              <span class="w-2 h-2 rounded-full bg-amber-600"></span>
+              1. Automatic Advancement Scheme (AAS)
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label for="aasType" class="block text-[11px] font-semibold text-slate-600 mb-1">AAS SCALE RULE</label>
+                <select id="aasType" onchange="buildSchedule()" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500">
+                  <option value="none">No AAS Event</option>
+                  <option value="aas6">AAS 6 Years (SGP)</option>
+                  <option value="aas12">AAS 12 Years (SPP-I A)</option>
+                  <option value="aas18">AAS 18 Years (SPP-I B)</option>
+                  <option value="aas24">AAS 24 Years (SPP-II)</option>
+                </select>
+              </div>
+              <div>
+                <label for="aasDate" class="block text-[11px] font-semibold text-slate-600 mb-1">AAS EFFECTIVE DATE</label>
+                <input type="date" id="aasDate" value="2024-05-01" min="2024-01-01" max="2030-12-31" onchange="buildSchedule()" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- ENTRY 2: Promotion Fixation Scheme -->
+          <div class="bg-indigo-50/40 p-3 rounded-lg border border-indigo-200/80 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-indigo-900 uppercase">
+              <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+              2. Promotion Fixation Scheme
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label for="promoType" class="block text-[11px] font-semibold text-slate-600 mb-1">PROMOTION FIXATION RULE</label>
+                <select id="promoType" onchange="handlePromoTypeChange()" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                  <option value="none">No Promotion Event</option>
+                  <option value="opt_promo_date">Option from Promotion date (+2 Inc, Inc Mo Shifts)</option>
+                  <option value="opt_inc_date">Option from Increment date (+1 on Promo, +2 on Inc Mo)</option>
+                  <option value="direct">Direct Basic Pay Selection (&gt; 5 Increments / Higher Scale)</option>
+                </select>
+              </div>
+              <div>
+                <label for="promoDate" class="block text-[11px] font-semibold text-slate-600 mb-1">PROMOTION EFFECTIVE DATE</label>
+                <input type="date" id="promoDate" value="2024-07-01" min="2024-01-01" max="2030-12-31" onchange="buildSchedule()" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+              </div>
+            </div>
+
+            <!-- Direct Basic Pay Selection Dropdown -->
+            <div id="directPayContainer" class="hidden pt-1">
+              <label for="directNewBasic" class="block text-[11px] font-semibold text-indigo-800 mb-1">SELECT PROMOTIONAL BASIC PAY (&gt;5 INCS / HIGHER POST)</label>
+              <select id="directNewBasic" onchange="buildSchedule()" class="w-full bg-white border border-indigo-300 rounded-lg px-2 py-1.5 text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500">
+                <!-- Loaded dynamically from RPS 2020 -->
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Row 4: Surrender Leave (Encashment) -->
+      <div class="pt-3 border-t border-slate-200">
+        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+            Surrender Leave Encashment (Add up to 4 SL Entries)
+          </span>
+          <span class="text-[11px] font-normal text-slate-500 lowercase">15 days = 50% basic pay | 30 days = 100% basic pay</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-amber-50/50 p-3 rounded-lg border border-amber-200">
+          
+          <div class="bg-white p-2.5 rounded border border-amber-200 shadow-2xs space-y-1.5">
+            <div class="text-[11px] font-bold text-amber-900 uppercase">Surrender Leave #1</div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">MONTH</label>
+              <select id="sl_month_1" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold sl-month-select">
+                <option value="none">-- Not Availed --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">DURATION</label>
+              <select id="sl_days_1" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                <option value="15" selected>15 Days (50% Basic)</option>
+                <option value="30">30 Days (100% Basic)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-white p-2.5 rounded border border-amber-200 shadow-2xs space-y-1.5">
+            <div class="text-[11px] font-bold text-amber-900 uppercase">Surrender Leave #2</div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">MONTH</label>
+              <select id="sl_month_2" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold sl-month-select">
+                <option value="none">-- Not Availed --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">DURATION</label>
+              <select id="sl_days_2" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                <option value="15" selected>15 Days (50% Basic)</option>
+                <option value="30">30 Days (100% Basic)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-white p-2.5 rounded border border-amber-200 shadow-2xs space-y-1.5">
+            <div class="text-[11px] font-bold text-amber-900 uppercase">Surrender Leave #3</div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">MONTH</label>
+              <select id="sl_month_3" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold sl-month-select">
+                <option value="none">-- Not Availed --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">DURATION</label>
+              <select id="sl_days_3" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                <option value="15" selected>15 Days (50% Basic)</option>
+                <option value="30">30 Days (100% Basic)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-white p-2.5 rounded border border-amber-200 shadow-2xs space-y-1.5">
+            <div class="text-[11px] font-bold text-amber-900 uppercase">Surrender Leave #4</div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">MONTH</label>
+              <select id="sl_month_4" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold sl-month-select">
+                <option value="none">-- Not Availed --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600">DURATION</label>
+              <select id="sl_days_4" onchange="buildSchedule()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                <option value="15" selected>15 Days (50% Basic)</option>
+                <option value="30">30 Days (100% Basic)</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- January Increment Toggle -->
+      <div id="janIncrementToggle" class="pt-2 border-t border-slate-100 hidden">
+        <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
+          <input type="checkbox" id="janAlreadyIncluded" checked onchange="buildSchedule()" class="rounded text-emerald-600 focus:ring-emerald-500">
+          <span>Entered Basic Pay <strong>already includes</strong> the Jan 2024 annual increment</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="summary-cards-print grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="summary-card-box bg-white border border-slate-200 rounded-xl p-2.5 sm:p-3 shadow-sm">
+        <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Gross Arrears</span>
+        <div class="text-base sm:text-xl font-bold text-slate-900 mt-0.5" id="cardGrossArrears">₹0</div>
+        <span class="text-[9px] text-slate-400 block no-print">Total Net Accrued Difference</span>
+      </div>
+
+      <div class="summary-card-box bg-white border border-slate-200 rounded-xl p-2.5 sm:p-3 shadow-sm">
+        <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block" id="cardAccountLabel">GPF Transfer</span>
+        <div class="text-base sm:text-xl font-bold text-emerald-700 mt-0.5" id="cardAccountValue">₹0</div>
+        <span class="text-[9px] text-slate-400 block no-print" id="cardAccountSubtext">100% to GPF</span>
+      </div>
+
+      <div class="summary-card-box bg-white border border-slate-200 rounded-xl p-2.5 sm:p-3 shadow-sm">
+        <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Net Cash Payable</span>
+        <div class="text-base sm:text-xl font-bold text-teal-700 mt-0.5" id="cardCashPayable">₹0</div>
+        <span class="text-[9px] text-slate-400 block no-print" id="cardCashSubtext">Disbursed to Bank</span>
+      </div>
+    </section>
+
+    <!-- Table Section -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      
+      <!-- Employee & Audit Header -->
+      <div class="p-2 sm:p-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center text-xs gap-2">
+        <div class="flex items-center gap-4 sm:gap-6 flex-wrap">
+          <div><span class="font-bold text-slate-500 uppercase text-[9px] block">EMPLOYEE NAME</span> <span id="dispEmpName" class="font-bold text-slate-800 text-[10px] sm:text-xs">—</span></div>
+          <div><span class="font-bold text-slate-500 uppercase text-[9px] block">DESIGNATION</span> <span id="dispEmpDesig" class="font-bold text-slate-800 text-[10px] sm:text-xs">—</span></div>
+          <div><span class="font-bold text-slate-500 uppercase text-[9px] block">SCHEME</span> <span id="dispScheme" class="font-bold text-emerald-800 text-[10px] sm:text-xs">GPF</span></div>
+          <div><span class="font-bold text-slate-500 uppercase text-[9px] block">INCREMENT CYCLE</span> <span id="dispIncCycle" class="font-semibold text-slate-700 text-[10px] sm:text-xs">—</span></div>
+        </div>
+        <div class="text-right text-[10px] text-slate-500">
+          Scale: <strong class="text-slate-700">TS RPS-2020</strong> | DA: 33.67% &rarr; 37.31% & 40.05%
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="p-2.5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 no-print">
+        <h2 class="text-xs sm:text-sm font-bold text-slate-900">Month-Wise Due-Drawn Statement</h2>
+        <div class="flex flex-wrap bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold self-stretch sm:self-auto gap-0.5" id="yearTabsContainer">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-700">
+          <thead class="bg-slate-100 text-slate-700 uppercase font-semibold border-b border-slate-200 text-[10px]">
+            <tr>
+              <th class="px-2 py-1.5 col-month">Month / Event</th>
+              <th class="px-2 py-1.5 col-basic text-left">Basic Pay (₹)</th>
+              <th class="px-2 py-1.5 col-status text-left">Audit Status / Description</th>
+              <th class="px-2 py-1.5 col-drawn text-right">Drawn DA<br><span class="font-normal lowercase text-[9px]">(33.67%)</span></th>
+              <th class="px-2 py-1.5 col-due text-right">Due DA<br><span class="font-normal lowercase text-[9px]">(37.31%/40.05%)</span></th>
+              <th class="px-2 py-1.5 col-arrear text-right font-bold text-slate-900">Total Arrear (₹)</th>
+              <th class="px-2 py-1.5 col-scheme text-right" id="thSchemeDeduction">GPF / CPS (10%)</th>
+              <th class="px-2 py-1.5 col-cash text-right" id="thCashPayable">Cash (90%)</th>
+            </tr>
+          </thead>
+          <tbody id="arrearsTableBody" class="divide-y divide-slate-200 font-medium">
+            <!-- Dynamically populated rows -->
+          </tbody>
+          <tfoot class="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300">
+            <tr>
+              <td class="px-2 py-1.5 uppercase text-center" colspan="3" id="footLabel">Grand Total</td>
+              <td class="px-2 py-1.5 text-right num-cell" id="footDrawnDA">₹0</td>
+              <td class="px-2 py-1.5 text-right num-cell" id="footRevisedDA">₹0</td>
+              <td class="px-2 py-1.5 text-right text-xs sm:text-sm text-slate-900 num-cell" id="footGrossArrear">₹0</td>
+              <td class="px-2 py-1.5 text-right text-emerald-800 num-cell" id="footSchemeDeduction">₹0</td>
+              <td class="px-2 py-1.5 text-right text-teal-800 num-cell" id="footCashPayable">₹0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // -------------------------------------------------------------
+    // 1. TS RPS 2020 MASTER SCALE GENERATOR (81 Stages: 19000 - 162070)
+    // -------------------------------------------------------------
+    function generateRPS2020Scale() {
+      const segments = [
+        { to: 20920, inc: 640 }, { to: 22900, inc: 660 }, { to: 24970, inc: 690 },
+        { to: 27130, inc: 720 }, { to: 29380, inc: 750 }, { to: 31870, inc: 830 },
+        { to: 34690, inc: 940 }, { to: 37780, inc: 1030 }, { to: 41110, inc: 1110 },
+        { to: 44680, inc: 1190 }, { to: 48520, inc: 1280 }, { to: 52720, inc: 1400 },
+        { to: 57220, inc: 1500 }, { to: 62110, inc: 1630 }, { to: 67300, inc: 1730 },
+        { to: 72850, inc: 1850 }, { to: 78820, inc: 1990 }, { to: 85240, inc: 2140 },
+        { to: 92050, inc: 2270 }, { to: 99310, inc: 2420 }, { to: 106990, inc: 2560 },
+        { to: 115270, inc: 2760 }, { to: 124150, inc: 2960 }, { to: 133630, inc: 3160 },
+        { to: 147310, inc: 3420 }, { to: 162070, inc: 3690 }
+      ];
+      const scale = [19000];
+      let curr = 19000;
+      for (const seg of segments) {
+        while (curr < seg.to) {
+          curr += seg.inc;
+          scale.push(curr);
+        }
+      }
+      return scale;
+    }
+
+    const RPS_2020_SCALES = generateRPS2020Scale();
+
+    const PREVIOUS_DA_RATE = 33.67;
+    const DA_RATE_JAN_2024 = 37.31;
+    const DA_RATE_JUL_2024 = 40.05;
+
+    const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    let scheduleData = [];
+    let currentFilterYear = "all";
+
+    function formatINR(val) {
+      return "₹" + Math.round(val).toLocaleString("en-IN");
+    }
+
+    function getNextStage(currentPay, steps = 1) {
+      const idx = RPS_2020_SCALES.indexOf(Number(currentPay));
+      if (idx === -1) return currentPay;
+      const target = Math.min(idx + steps, RPS_2020_SCALES.length - 1);
+      return RPS_2020_SCALES[target];
+    }
+
+    function getDaysInMonth(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    // -------------------------------------------------------------
+    // 2. INITIALIZATION & UI HANDLERS
+    // -------------------------------------------------------------
+    function init() {
+      const selInitial = document.getElementById("initialBasic");
+      const selDirect = document.getElementById("directNewBasic");
+      if (!selInitial || !selDirect) return;
+
+      selInitial.innerHTML = "";
+      selDirect.innerHTML = "";
+
+      RPS_2020_SCALES.forEach((stage, idx) => {
+        const opt1 = document.createElement("option");
+        opt1.value = stage;
+        opt1.textContent = `₹${stage.toLocaleString("en-IN")} (Stage ${idx + 1})`;
+        if (stage === 32810) opt1.selected = true;
+        selInitial.appendChild(opt1);
+
+        const opt2 = document.createElement("option");
+        opt2.value = stage;
+        opt2.textContent = `₹${stage.toLocaleString("en-IN")} (Stage ${idx + 1})`;
+        if (stage === 43490) opt2.selected = true;
+        selDirect.appendChild(opt2);
+      });
+
+      populateSlMonthDropdowns();
+      updateEmpDetails();
+      handleApptTimelineChange();
+    }
+
+    function handleApptTimelineChange() {
+      const timeline = document.getElementById("apptTimeline") ? document.getElementById("apptTimeline").value : "before";
+      const dojCont = document.getElementById("dojContainer");
+      if (dojCont) {
+        if (timeline === "after") {
+          dojCont.classList.remove("hidden");
+        } else {
+          dojCont.classList.add("hidden");
+        }
+      }
+      buildSchedule();
+    }
+
+    function handlePromoTypeChange() {
+      const promoTypeEl = document.getElementById("promoType");
+      const type = promoTypeEl ? promoTypeEl.value : "none";
+      const directCont = document.getElementById("directPayContainer");
+      if (directCont) {
+        if (type === "direct") {
+          directCont.classList.remove("hidden");
+        } else {
+          directCont.classList.add("hidden");
+        }
+      }
+      buildSchedule();
+    }
+
+    function populateSlMonthDropdowns() {
+      const selects = document.querySelectorAll(".sl-month-select");
+      selects.forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = `<option value="none">-- Not Availed --</option>`;
+        let y = 2024;
+        let m = 1;
+        while (y < 2030 || (y === 2030 && m <= 12)) {
+          const opt = document.createElement("option");
+          opt.value = `${y}-${String(m).padStart(2, '0')}`;
+          opt.textContent = `${SHORT_MONTHS[m - 1]} ${y}`;
+          sel.appendChild(opt);
+          m++;
+          if (m > 12) { m = 1; y++; }
+        }
+        if (currentVal && currentVal !== "none") sel.value = currentVal;
+      });
+    }
+
+    function updateEmpDetails() {
+      const empNameEl = document.getElementById("empName");
+      const empDesigEl = document.getElementById("empDesig");
+      const name = empNameEl && empNameEl.value ? empNameEl.value.trim() : "";
+      const desig = empDesigEl && empDesigEl.value ? empDesigEl.value.trim() : "";
+      const schemeChecked = document.querySelector('input[name="pensionScheme"]:checked');
+      const scheme = schemeChecked ? schemeChecked.value : "GPF";
+
+      const dispName = document.getElementById("dispEmpName");
+      const dispDesig = document.getElementById("dispEmpDesig");
+      const dispSch = document.getElementById("dispScheme");
+
+      if (dispName) dispName.textContent = name || "—";
+      if (dispDesig) dispDesig.textContent = desig || "—";
+      if (dispSch) dispSch.textContent = scheme;
+    }
+
+    // -------------------------------------------------------------
+    // 3. BUILD SCHEDULE WITH AGI & AAS COINCIDENCE RESOLUTION
+    // -------------------------------------------------------------
+    function buildSchedule() {
+      const selInitial = document.getElementById("initialBasic");
+      if (!selInitial || selInitial.options.length === 0) {
+        init();
+        return;
+      }
+
+      const apptTimelineEl = document.getElementById("apptTimeline");
+      const apptTimeline = apptTimelineEl ? apptTimelineEl.value : "before";
+
+      const incMonthEl = document.getElementById("incrementMonth");
+      const incMonthVal = incMonthEl ? incMonthEl.value : "none";
+      const initialIncMonth = incMonthVal === "none" ? null : parseInt(incMonthVal);
+
+      const initialPay = Number(selInitial.value) || 32810;
+      const janAlreadyIncludedEl = document.getElementById("janAlreadyIncluded");
+      const janAlreadyIncluded = janAlreadyIncludedEl ? janAlreadyIncludedEl.checked : true;
+
+      const endPeriodEl = document.getElementById("endPeriod");
+      const endPeriodVal = (endPeriodEl && endPeriodEl.value) ? endPeriodEl.value : "2026-09-30";
+      const [endYear, endMonth, endDay] = endPeriodVal.split("-").map(Number);
+
+      let startYear = 2024;
+      let startMonth = 1;
+      let joiningDay = 1;
+
+      if (apptTimeline === "after") {
+        const dojEl = document.getElementById("doj");
+        const dojVal = (dojEl && dojEl.value) ? dojEl.value : "2024-02-01";
+        const [dY, dM, dD] = dojVal.split("-").map(Number);
+        startYear = dY;
+        startMonth = dM;
+        joiningDay = dD;
+      }
+
+      // 1. AAS Scheme Settings
+      const aasTypeEl = document.getElementById("aasType");
+      const aasType = aasTypeEl ? aasTypeEl.value : "none";
+      const aasDateEl = document.getElementById("aasDate");
+      const aasDateVal = (aasDateEl && aasDateEl.value) ? aasDateEl.value : "";
+      const [aasYear, aasMonth, aasDay] = (aasType !== "none" && aasDateVal) ? aasDateVal.split("-").map(Number) : [null, null, null];
+
+      // 2. Promotion Scheme Settings
+      const promoTypeEl = document.getElementById("promoType");
+      const promoType = promoTypeEl ? promoTypeEl.value : "none";
+      const directNewBasicEl = document.getElementById("directNewBasic");
+      const directTargetPay = directNewBasicEl ? Number(directNewBasicEl.value) : 43490;
+      const promoDateEl = document.getElementById("promoDate");
+      const promoDateVal = (promoDateEl && promoDateEl.value) ? promoDateEl.value : "";
+      const [promoYear, promoMonth, promoDay] = (promoType !== "none" && promoDateVal) ? promoDateVal.split("-").map(Number) : [null, null, null];
+
+      // Surrender Leaves configured
+      const surrenderLeaves = [];
+      for (let i = 1; i <= 4; i++) {
+        const mEl = document.getElementById(`sl_month_${i}`);
+        const mVal = mEl ? mEl.value : "none";
+        if (mVal && mVal !== "none") {
+          const dEl = document.getElementById(`sl_days_${i}`);
+          const days = dEl ? parseInt(dEl.value) || 15 : 15;
+          surrenderLeaves.push({ monthKey: mVal, days: days, slot: i });
+        }
+      }
+
+      // January Toggle
+      const janToggle = document.getElementById("janIncrementToggle");
+      if (janToggle) {
+        if (initialIncMonth === 1 && apptTimeline === "before") {
+          janToggle.classList.remove("hidden");
+        } else {
+          janToggle.classList.add("hidden");
+        }
+      }
+
+      scheduleData = [];
+      let runningScalePay = initialPay;
+      let aasApplied = false;
+      let promoApplied = false;
+      let reFixationApplied = false;
+
+      // Update Audit Header notes regarding increment cycle
+      const incNoteEl = document.getElementById("incMonthNote");
+      const dispIncCycle = document.getElementById("dispIncCycle");
+
+      if (promoType === "opt_promo_date" && promoMonth) {
+        if (incNoteEl) incNoteEl.textContent = `Shifts to ${MONTH_NAMES[promoMonth - 1]} w.e.f. ${promoDay || 1}/${promoMonth}/${promoYear} promotion`;
+        if (dispIncCycle) {
+          dispIncCycle.textContent = initialIncMonth 
+            ? `${SHORT_MONTHS[initialIncMonth - 1]} (pre-promo) → ${SHORT_MONTHS[promoMonth - 1]} (from ${promoYear + 1})`
+            : `${SHORT_MONTHS[promoMonth - 1]} (from ${promoYear + 1})`;
+        }
+      } else if (promoType === "opt_inc_date" && initialIncMonth) {
+        if (incNoteEl) incNoteEl.textContent = `Remains ${MONTH_NAMES[initialIncMonth - 1]} (Re-fixation due in next ${SHORT_MONTHS[initialIncMonth - 1]})`;
+        if (dispIncCycle) dispIncCycle.textContent = `${MONTH_NAMES[initialIncMonth - 1]} (Option on Inc Date)`;
+      } else {
+        if (incNoteEl) incNoteEl.textContent = "Advances +1 stage each year";
+        if (dispIncCycle) dispIncCycle.textContent = initialIncMonth ? `${MONTH_NAMES[initialIncMonth - 1]} of each year` : "None";
+      }
+
+      // Loop strictly from startYear/startMonth up to endYear/endMonth
+      let y = startYear;
+      let m = startMonth;
+
+      while (y < endYear || (y === endYear && m <= endMonth)) {
+        const totalDays = getDaysInMonth(y, m);
+        let eventType = "none";
+        let isFirstAppointmentMonth = (apptTimeline === "after" && y === startYear && m === startMonth);
+        let isLastMonth = (y === endYear && m === endMonth);
+        let activeDays = totalDays;
+        let auditBadgeText = "Regular";
+        let badgeClass = "bg-slate-100 text-slate-700";
+
+        if (isFirstAppointmentMonth) {
+          activeDays = totalDays - joiningDay + 1;
+          auditBadgeText = `Joined on ${joiningDay}th (${activeDays}/${totalDays}d)`;
+          badgeClass = "bg-sky-100 text-sky-800 font-bold";
+        }
+
+        if (isLastMonth && endDay < totalDays) {
+          if (isFirstAppointmentMonth) {
+            activeDays = Math.max(0, endDay - joiningDay + 1);
+            auditBadgeText = `Period: ${joiningDay}th to ${endDay}th (${activeDays}/${totalDays}d)`;
+          } else {
+            activeDays = endDay;
+            auditBadgeText = `Up to ${endDay}th (${activeDays}/${totalDays}d)`;
+          }
+          badgeClass = "bg-teal-100 text-teal-900 font-bold";
+        }
+
+        // Determine active increment month
+        let activeIncMonth = initialIncMonth;
+        if (promoApplied && (promoType === "opt_promo_date" || promoType === "direct")) {
+          if (y > promoYear || (y === promoYear && m > promoMonth)) {
+            activeIncMonth = promoMonth;
+          }
+        }
+
+        // Check if Annual Increment is due this month
+        let isIncDueThisMonth = !isFirstAppointmentMonth && activeIncMonth !== null && activeIncMonth === m;
+        // Skip Jan 2024 increment if user indicated it was already included
+        if (y === 2024 && m === 1 && janAlreadyIncluded) {
+          isIncDueThisMonth = false;
+        }
+
+        // Check if AAS applies this month
+        const isAasThisMonth = (aasType !== "none" && !aasApplied && y === aasYear && m === aasMonth);
+
+        // Check if Promotion applies this month
+        const isPromoThisMonth = (promoType !== "none" && !promoApplied && y === promoYear && m === promoMonth);
+
+        let adjustedBasicPay = 0;
+        let displaySubtitle = "";
+
+        // =========================================================================
+        // SCENARIO 1: ANNUAL INCREMENT & AAS FALL IN THE EXACT SAME MONTH
+        // =========================================================================
+        if (isAasThisMonth && isIncDueThisMonth) {
+          const preMonthPay = runningScalePay;
+          const aasName = { aas6: "AAS 6Y", aas12: "AAS 12Y", aas18: "AAS 18Y", aas24: "AAS 24Y" }[aasType];
+
+          // 1st Step: Sanction Annual Increment from 1st of the month (+1 stage)
+          const payAfterInc = getNextStage(preMonthPay, 1);
+
+          // 2nd Step: From AAS date, add ONLY ONE additional increment (+1 stage)
+          const payAfterAas = getNextStage(payAfterInc, 1);
+
+          if (aasDay === 1) {
+            adjustedBasicPay = payAfterAas;
+            displaySubtitle = `Inc (+1) & ${aasName} (+1) from 1st`;
+            auditBadgeText = `Inc & ${aasName} (+2 from 1st)`;
+            badgeClass = "bg-amber-100 text-amber-900 font-bold";
+            runningScalePay = payAfterAas;
+          } else {
+            const daysBefore = aasDay - 1;
+            const daysAfter = totalDays - aasDay + 1;
+            const pay1 = Math.round(payAfterInc * (daysBefore / totalDays));
+            const pay2 = Math.round(payAfterAas * (daysAfter / totalDays));
+            adjustedBasicPay = pay1 + pay2;
+            displaySubtitle = `Split: ${daysBefore}d @ ₹${payAfterInc.toLocaleString("en-IN")} (Inc) + ${daysAfter}d @ ₹${payAfterAas.toLocaleString("en-IN")} (${aasName})`;
+            auditBadgeText = `Inc from 1st (+1) & ${aasName} w.e.f ${aasDay}th (+1)`;
+            badgeClass = "bg-amber-100 text-amber-900 font-bold";
+            runningScalePay = payAfterAas;
+          }
+
+          aasApplied = true;
+          eventType = "inc_and_aas";
+        }
+
+        // =========================================================================
+        // SCENARIO 2: AAS ALONE APPLIES THIS MONTH (NO ANNUAL INCREMENT)
+        // =========================================================================
+        else if (isAasThisMonth) {
+          const preEventPay = runningScalePay;
+          const postEventPay = getNextStage(runningScalePay, 2); // Standard AAS = +2 stages
+          const aasName = { aas6: "AAS 6Y", aas12: "AAS 12Y", aas18: "AAS 18Y", aas24: "AAS 24Y" }[aasType];
+
+          if (aasDay === 1) {
+            adjustedBasicPay = postEventPay;
+            auditBadgeText = `${aasName} (+2 Stages)`;
+            badgeClass = "bg-amber-100 text-amber-900 font-bold";
+            runningScalePay = postEventPay;
+          } else {
+            const daysBefore = aasDay - 1;
+            const daysAfter = totalDays - aasDay + 1;
+            const pay1 = Math.round(preEventPay * (daysBefore / totalDays));
+            const pay2 = Math.round(postEventPay * (daysAfter / totalDays));
+            adjustedBasicPay = pay1 + pay2;
+            displaySubtitle = `Split: ${daysBefore}d @ ₹${preEventPay.toLocaleString("en-IN")} + ${daysAfter}d @ ₹${postEventPay.toLocaleString("en-IN")}`;
+            auditBadgeText = `${aasName} (+2) w.e.f ${aasDay}th`;
+            badgeClass = "bg-amber-100 text-amber-900 font-bold";
+            runningScalePay = postEventPay;
+          }
+
+          aasApplied = true;
+          eventType = aasType;
+        }
+
+        // =========================================================================
+        // SCENARIO 3: PROMOTION FIXATION APPLIES THIS MONTH
+        // =========================================================================
+        else if (isPromoThisMonth) {
+          const preEventPay = runningScalePay;
+          let promoStages = 0;
+          let postEventPay = runningScalePay;
+
+          if (promoType === "opt_promo_date") {
+            promoStages = 2; // Option 1: 2 increments on promo date
+            postEventPay = getNextStage(runningScalePay, promoStages);
+          } else if (promoType === "opt_inc_date") {
+            promoStages = 1; // Option 2: 1 increment under FR 22(a)(i) on promo date
+            postEventPay = getNextStage(runningScalePay, promoStages);
+          } else if (promoType === "direct") {
+            postEventPay = directTargetPay;
+          }
+
+          if (promoDay === 1) {
+            adjustedBasicPay = postEventPay;
+            if (promoType === "opt_promo_date") {
+              auditBadgeText = "Promo Fixation (+2)";
+              badgeClass = "bg-purple-100 text-purple-900 font-bold";
+            } else if (promoType === "opt_inc_date") {
+              auditBadgeText = "FR 22(a)(i) (+1)";
+              badgeClass = "bg-indigo-100 text-indigo-900 font-bold";
+            } else if (promoType === "direct") {
+              auditBadgeText = "Promotion (>5 Inc)";
+              badgeClass = "bg-purple-100 text-purple-900 font-bold";
+            }
+            runningScalePay = postEventPay;
+          } else {
+            const daysBefore = promoDay - 1;
+            const daysAfter = totalDays - promoDay + 1;
+            const pay1 = Math.round(preEventPay * (daysBefore / totalDays));
+            const pay2 = Math.round(postEventPay * (daysAfter / totalDays));
+            adjustedBasicPay = pay1 + pay2;
+            displaySubtitle = `Split: ${daysBefore}d @ ₹${preEventPay.toLocaleString("en-IN")} + ${daysAfter}d @ ₹${postEventPay.toLocaleString("en-IN")}`;
+            
+            if (promoType === "opt_promo_date") {
+              auditBadgeText = `Promo Fixation (+2) w.e.f ${promoDay}th`;
+              badgeClass = "bg-purple-100 text-purple-900 font-bold";
+            } else if (promoType === "opt_inc_date") {
+              auditBadgeText = `FR 22(a)(i) (+1) w.e.f ${promoDay}th`;
+              badgeClass = "bg-indigo-100 text-indigo-900 font-bold";
+            } else if (promoType === "direct") {
+              auditBadgeText = `Promotion (>5 Inc) w.e.f ${promoDay}th`;
+              badgeClass = "bg-purple-100 text-purple-900 font-bold";
+            }
+            runningScalePay = postEventPay;
+          }
+
+          promoApplied = true;
+          eventType = promoType;
+        }
+
+        // =========================================================================
+        // SCENARIO 4: REGULAR ANNUAL INCREMENT / RE-FIXATION MONTH
+        // =========================================================================
+        else if (isIncDueThisMonth) {
+          if (promoType === "opt_inc_date" && promoApplied && !reFixationApplied) {
+            // Re-fixation under Option on Increment date: 2 increments (+2 stages)
+            runningScalePay = getNextStage(runningScalePay, 2);
+            eventType = "refix_inc";
+            auditBadgeText = "One for AGI and other FR 22(B)";
+            badgeClass = "bg-purple-100 text-purple-900 font-bold";
+            reFixationApplied = true;
+          } else {
+            runningScalePay = getNextStage(runningScalePay, 1);
+            eventType = "increment";
+            const isShifted = promoType === "opt_promo_date" && m === promoMonth;
+            auditBadgeText = isShifted ? "Annual Inc. (+1) [New Due Mo]" : "Annual Inc. (+1)";
+            badgeClass = "bg-emerald-100 text-emerald-800 font-bold";
+          }
+
+          if (activeDays < totalDays) {
+            adjustedBasicPay = Math.round(runningScalePay * (activeDays / totalDays));
+            displaySubtitle = `Prorated: ${activeDays}/${totalDays} days (@ ₹${runningScalePay.toLocaleString("en-IN")})`;
+          } else {
+            adjustedBasicPay = runningScalePay;
+          }
+        }
+
+        // =========================================================================
+        // SCENARIO 5: REGULAR ACTIVE SERVICE MONTH
+        // =========================================================================
+        else {
+          if (activeDays < totalDays) {
+            adjustedBasicPay = Math.round(runningScalePay * (activeDays / totalDays));
+            displaySubtitle = `Prorated: ${activeDays}/${totalDays} days (@ ₹${runningScalePay.toLocaleString("en-IN")})`;
+          } else {
+            adjustedBasicPay = runningScalePay;
+          }
+        }
+
+        const label = `${SHORT_MONTHS[m - 1]} ${y}`;
+        const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+
+        let dueRate = DA_RATE_JAN_2024;
+        if (y > 2024 || (y === 2024 && m >= 7)) {
+          dueRate = DA_RATE_JUL_2024;
+        }
+
+        // 1. Regular Month Row
+        const regularRow = {
+          index: scheduleData.length,
+          isSurrenderLeave: false,
+          year: y,
+          month: m,
+          label: label,
+          scalePay: runningScalePay,
+          adjustedBasicPay: adjustedBasicPay,
+          displaySubtitle: displaySubtitle,
+          event: eventType,
+          drawnRate: PREVIOUS_DA_RATE,
+          dueRate: dueRate,
+          auditBadgeText: auditBadgeText,
+          badgeClass: badgeClass
+        };
+        scheduleData.push(regularRow);
+
+        // 2. Surrender Leave Row
+        const matchedSLs = surrenderLeaves.filter(sl => sl.monthKey === monthKey);
+        matchedSLs.forEach((sl) => {
+          const slBasicPay = (sl.days === 15) ? Math.round(runningScalePay / 2) : runningScalePay;
+          const slSubtitle = (sl.days === 15)
+            ? `15 Days Encashment (50% of ₹${runningScalePay.toLocaleString("en-IN")})`
+            : `30 Days Encashment (100% of ₹${runningScalePay.toLocaleString("en-IN")})`;
+
+          const slRow = {
+            index: scheduleData.length,
+            isSurrenderLeave: true,
+            year: y,
+            month: m,
+            label: `${SHORT_MONTHS[m - 1]} ${y} (SL)`,
+            scalePay: slBasicPay,
+            adjustedBasicPay: slBasicPay,
+            displaySubtitle: slSubtitle,
+            event: `sl_${sl.days}`,
+            drawnRate: PREVIOUS_DA_RATE,
+            dueRate: dueRate,
+            auditBadgeText: `Surrender Leave (${sl.days} Days)`,
+            badgeClass: "bg-amber-100 text-amber-900 font-bold"
+          };
+          scheduleData.push(slRow);
+        });
+
+        m++;
+        if (m > 12) {
+          m = 1;
+          y++;
+        }
+      }
+
+      const footLabelEl = document.getElementById("footLabel");
+      if (footLabelEl) footLabelEl.textContent = `Grand Total (${SHORT_MONTHS[startMonth - 1]} ${startYear} – ${endDay}/${endMonth}/${endYear})`;
+
+      renderYearTabs();
+      renderTable();
+      recalculateTotals();
+    }
+
+    // -------------------------------------------------------------
+    // 4. RENDER YEAR TABS & TABLE (READ-ONLY ROWS)
+    // -------------------------------------------------------------
+    function renderYearTabs() {
+      const container = document.getElementById("yearTabsContainer");
+      if (!container) return;
+
+      const years = Array.from(new Set(scheduleData.map(r => r.year)));
+      let html = `<button onclick="filterTableYear('all')" id="tab_all" class="year-tab px-2.5 py-1 rounded-md ${currentFilterYear === 'all' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">All Months</button>`;
+      
+      years.forEach(yr => {
+        const isCurrent = String(yr) === String(currentFilterYear);
+        html += `<button onclick="filterTableYear('${yr}')" id="tab_${yr}" class="year-tab px-2 py-1 rounded-md ${isCurrent ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${yr}</button>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("arrearsTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      scheduleData.forEach((row) => {
+        const isVisible = currentFilterYear === "all" || currentFilterYear === String(row.year);
+        const tr = document.createElement("tr");
+        tr.id = `row_${row.index}`;
+
+        const bgClass = row.isSurrenderLeave 
+          ? "bg-amber-50/70 hover:bg-amber-100/60" 
+          : (row.month % 2 === 0 ? "bg-white" : "bg-slate-50/60");
+
+        tr.className = `${isVisible ? "" : "hidden "}hover:bg-emerald-50/50 transition-colors ${bgClass}`;
+
+        let payCellContent = "";
+        if (row.displaySubtitle) {
+          payCellContent = `
+            <div class="font-bold text-slate-900 num-cell">${formatINR(row.adjustedBasicPay)}</div>
+            <div class="text-[9px] text-slate-500 font-normal leading-tight wrap-text">${row.displaySubtitle}</div>
+          `;
+        } else {
+          payCellContent = `<span class="font-bold text-slate-900 num-cell">${formatINR(row.adjustedBasicPay)}</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="px-2 py-1 font-semibold col-month wrap-text ${row.isSurrenderLeave ? 'text-amber-900 font-bold' : 'text-slate-800'}">
+            ${row.isSurrenderLeave ? '↳ ' + row.label : row.label}
+          </td>
+          <td class="px-2 py-1 col-basic">${payCellContent}</td>
+          <td class="px-2 py-1 col-status wrap-text" id="badge_${row.index}">
+            <span class="badge-print inline-block px-1.5 py-0.5 rounded text-[9px] ${row.badgeClass}">${row.auditBadgeText}</span>
+          </td>
+          <td class="px-2 py-1 text-right text-slate-600 col-drawn num-cell" id="drawnDa_${row.index}">₹0</td>
+          <td class="px-2 py-1 text-right font-medium text-emerald-950 col-due num-cell" id="dueDa_${row.index}">₹0</td>
+          <td class="px-2 py-1 text-right font-bold text-slate-900 col-arrear num-cell" id="totalArrear_${row.index}">₹0</td>
+          <td class="px-2 py-1 text-right font-medium text-emerald-800 col-scheme num-cell" id="schemeCol_${row.index}">₹0</td>
+          <td class="px-2 py-1 text-right font-medium text-teal-800 col-cash num-cell" id="cashCol_${row.index}">₹0</td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTableYear(year) {
+      currentFilterYear = year;
+      renderYearTabs();
+
+      scheduleData.forEach((row) => {
+        const el = document.getElementById(`row_${row.index}`);
+        if (el) {
+          if (year === "all" || String(row.year) === year) {
+            el.classList.remove("hidden");
+          } else {
+            el.classList.add("hidden");
+          }
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 5. ACCURATE ARREARS CALCULATION (TREASURY RULES)
+    // -------------------------------------------------------------
+    function recalculateTotals() {
+      const schemeChecked = document.querySelector('input[name="pensionScheme"]:checked');
+      const scheme = schemeChecked ? schemeChecked.value : "GPF";
+      const isCPS = scheme === "CPS";
+
+      const thScheme = document.getElementById("thSchemeDeduction");
+      const thCash = document.getElementById("thCashPayable");
+      const cardAccLabel = document.getElementById("cardAccountLabel");
+      const cardAccSub = document.getElementById("cardAccountSubtext");
+      const cardCashSub = document.getElementById("cardCashSubtext");
+
+      if (isCPS) {
+        if (thScheme) thScheme.textContent = "CPS (10%)";
+        if (thCash) thCash.textContent = "Cash (90%)";
+        if (cardAccLabel) cardAccLabel.textContent = "CPS (PRAN) Credit";
+        if (cardAccSub) cardAccSub.textContent = "10% of total arrears";
+        if (cardCashSub) cardCashSub.textContent = "90% Net Take-home";
+      } else {
+        if (thScheme) thScheme.textContent = "GPF Credit (100%)";
+        if (thCash) thCash.textContent = "Cash (₹0)";
+        if (cardAccLabel) cardAccLabel.textContent = "GPF Transfer";
+        if (cardAccSub) cardAccSub.textContent = "100% credited to GPF";
+        if (cardCashSub) cardCashSub.textContent = "Nil for GPF Subscribers";
+      }
+
+      let grandDrawnDA = 0;
+      let grandDueDA = 0;
+      let grandGross = 0;
+      let grandScheme = 0;
+      let grandCash = 0;
+
+      scheduleData.forEach((row) => {
+        const basic = row.adjustedBasicPay;
+        const drawnDA = Math.round(basic * (row.drawnRate / 100));
+        const dueDA = Math.round(basic * (row.dueRate / 100));
+        const totalRowArrear = dueDA - drawnDA;
+
+        let schemeAmt = 0;
+        let cashAmt = 0;
+
+        if (isCPS) {
+          schemeAmt = Math.round(totalRowArrear * 0.10);
+          cashAmt = totalRowArrear - schemeAmt;
+        } else {
+          schemeAmt = totalRowArrear;
+          cashAmt = 0;
+        }
+
+        row.computedDrawnDA = drawnDA;
+        row.computedDueDA = dueDA;
+        row.computedArrear = totalRowArrear;
+        row.computedScheme = schemeAmt;
+        row.computedCash = cashAmt;
+
+        const elDrawn = document.getElementById(`drawnDa_${row.index}`);
+        const elDue = document.getElementById(`dueDa_${row.index}`);
+        const elTotal = document.getElementById(`totalArrear_${row.index}`);
+        const elScheme = document.getElementById(`schemeCol_${row.index}`);
+        const elCash = document.getElementById(`cashCol_${row.index}`);
+
+        if (elDrawn) elDrawn.textContent = formatINR(drawnDA);
+        if (elDue) elDue.textContent = formatINR(dueDA);
+        if (elTotal) elTotal.textContent = formatINR(totalRowArrear);
+        if (elScheme) elScheme.textContent = formatINR(schemeAmt);
+        if (elCash) elCash.textContent = formatINR(cashAmt);
+
+        grandDrawnDA += drawnDA;
+        grandDueDA += dueDA;
+        grandGross += totalRowArrear;
+        grandScheme += schemeAmt;
+        grandCash += cashAmt;
+      });
+
+      const cardGross = document.getElementById("cardGrossArrears");
+      const cardAcc = document.getElementById("cardAccountValue");
+      const cardCash = document.getElementById("cardCashPayable");
+
+      if (cardGross) cardGross.textContent = formatINR(grandGross);
+      if (cardAcc) cardAcc.textContent = formatINR(grandScheme);
+      if (cardCash) cardCash.textContent = formatINR(grandCash);
+
+      const fDrawn = document.getElementById("footDrawnDA");
+      const fDue = document.getElementById("footRevisedDA");
+      const fGross = document.getElementById("footGrossArrear");
+      const fScheme = document.getElementById("footSchemeDeduction");
+      const fCash = document.getElementById("footCashPayable");
+
+      if (fDrawn) fDrawn.textContent = formatINR(grandDrawnDA);
+      if (fDue) fDue.textContent = formatINR(grandDueDA);
+      if (fGross) fGross.textContent = formatINR(grandGross);
+      if (fScheme) fScheme.textContent = formatINR(grandScheme);
+      if (fCash) fCash.textContent = formatINR(grandCash);
+    }
+
+    // -------------------------------------------------------------
+    // 6. EXCEL & CSV EXPORT GENERATOR
+    // -------------------------------------------------------------
+    function exportToExcel(format = 'xlsx') {
+      recalculateTotals();
+
+      const empNameEl = document.getElementById("empName");
+      const empDesigEl = document.getElementById("empDesig");
+      const empName = empNameEl && empNameEl.value ? empNameEl.value.trim() : "Employee";
+      const empDesig = empDesigEl && empDesigEl.value ? empDesigEl.value.trim() : "Staff";
+      const schemeChecked = document.querySelector('input[name="pensionScheme"]:checked');
+      const scheme = schemeChecked ? schemeChecked.value : "GPF";
+      const safeName = empName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `TS_DA_Arrears_${safeName}`;
+
+      const title = "Government of Telangana - RPS 2020 DA & Arrears Statement";
+      const sub = "DA Rates: 37.31% (w.e.f Jan 2024) & 40.05% (w.e.f Jul 2024)";
+
+      const headers = [
+        "Month / Event",
+        "Basic Pay",
+        "Audit Status / Description",
+        "Drawn DA (33.67%)",
+        "Due DA (37.31%/40.05%)",
+        "Total Arrear",
+        scheme === "CPS" ? "CPS (10%)" : "GPF (100%)",
+        scheme === "CPS" ? "Cash (90%)" : "Cash (0)"
+      ];
+
+      const dataRows = scheduleData.map(r => [
+        r.isSurrenderLeave ? `SL - ${r.label}` : r.label,
+        Number(r.adjustedBasicPay) || 0,
+        r.auditBadgeText + (r.displaySubtitle ? ` (${r.displaySubtitle})` : ""),
+        Number(r.computedDrawnDA) || 0,
+        Number(r.computedDueDA) || 0,
+        Number(r.computedArrear) || 0,
+        Number(r.computedScheme) || 0,
+        Number(r.computedCash) || 0
+      ]);
+
+      let totDrawn = 0, totDue = 0, totArr = 0, totScheme = 0, totCash = 0;
+      scheduleData.forEach(r => {
+        totDrawn += (r.computedDrawnDA || 0);
+        totDue += (r.computedDueDA || 0);
+        totArr += (r.computedArrear || 0);
+        totScheme += (r.computedScheme || 0);
+        totCash += (r.computedCash || 0);
+      });
+
+      const totalRow = ["GRAND TOTAL", "", "", totDrawn, totDue, totArr, totScheme, totCash];
+
+      if (format === 'xlsx' && typeof XLSX !== "undefined") {
+        try {
+          const wsData = [
+            [title],
+            [sub],
+            [`Name: ${empName}`, `Designation: ${empDesig}`, `Scheme: ${scheme}`],
+            [],
+            headers,
+            ...dataRows,
+            totalRow
+          ];
+
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+          ws['!cols'] = [
+            { wch: 18 }, { wch: 14 }, { wch: 34 }, { wch: 16 },
+            { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }
+          ];
+
+          XLSX.utils.book_append_sheet(wb, ws, "DA Arrears");
+          
+          const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          triggerDownload(blob, `${filename}.xlsx`);
+          return;
+        } catch (e) {
+          console.warn("SheetJS write failed, falling back to Excel CSV:", e);
+        }
+      }
+
+      // Direct CSV with UTF-8 BOM
+      const lines = [];
+      lines.push(`"${title.replace(/"/g, '""')}"`);
+      lines.push(`"${sub.replace(/"/g, '""')}"`);
+      lines.push(`"Name: ${empName.replace(/"/g, '""')}","Designation: ${empDesig.replace(/"/g, '""')}","Scheme: ${scheme}"`);
+      lines.push("");
+      lines.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","));
+
+      dataRows.forEach(r => {
+        lines.push(r.map(val => {
+          if (typeof val === 'number') return val;
+          return `"${String(val).replace(/"/g, '""')}"`;
+        }).join(","));
+      });
+
+      lines.push(totalRow.map(val => {
+        if (typeof val === 'number') return val;
+        return `"${String(val).replace(/"/g, '""')}"`;
+      }).join(","));
+
+      const csvContent = "\uFEFF" + lines.join("\r\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      triggerDownload(blob, `${filename}.csv`);
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 500);
+    }
+
+    // Attach functions to window to avoid inline ReferenceErrors
+    window.buildSchedule = buildSchedule;
+    window.init = init;
+    window.handleApptTimelineChange = handleApptTimelineChange;
+    window.handlePromoTypeChange = handlePromoTypeChange;
+    window.updateEmpDetails = updateEmpDetails;
+    window.filterTableYear = filterTableYear;
+    window.recalculateTotals = recalculateTotals;
+    window.exportToExcel = exportToExcel;
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
